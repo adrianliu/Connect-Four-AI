@@ -1,0 +1,118 @@
+import java.util.*;
+
+/** An instance represents a Solver that intelligently determines 
+ *  Moves using algorithm Minimax. */
+public class AI implements Solver {
+
+    private Board.Player player; // the current player
+    private Move hmLastMove;
+
+    /** Constructor: an instance with player p who searches to depth d
+     * when searching the game space for moves. */
+    public AI(Board.Player p) {
+        player= p;
+        hmLastMove = null;
+        
+    }
+
+    /** See Solver.getMoves for the specification. */
+    public @Override Move getMove(Board b) {
+        // TODO
+    	hmLastMove = null;
+    	State curState = new State(player, b, null);
+    	Move[] moves = b.getPossibleMoves(player);
+    	Move bestMove = null;
+    	try {
+			minimax(curState, moves, bestMove);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	return bestMove;
+    }
+    
+    private void printBoard(Board b) {
+    	for (int r= 0; r < Board.NUM_ROWS; r++) {
+            for (int c= 0; c < Board.NUM_COLS; c++) {
+                System.out.print(b.board[r][c] + " ");
+            }
+        }
+    	System.out.println();
+    }
+    
+    
+    //The minimax algorithm
+    public int minimax(State s, Move[] moves, Move bestMove) throws InterruptedException {
+    	
+    	if(s.getBoard().hasConnectFour() != null || moves == null || moves.length == 0) {
+    		return evaluateBoard(s.getBoard());
+    	} else {
+    		
+    		int val = Integer.MIN_VALUE;
+    		
+    		for(Move move: moves) {
+    			Board newBoard = new Board(s.getBoard(), move);
+    			State newState = new State(s.getPlayer().opponent(), newBoard, move);
+    	    		
+    			int newVal = maximin(newState, newBoard.getPossibleMoves(s.getPlayer().opponent()), bestMove);
+    			if(newVal > val) {
+    				val = newVal;
+    				bestMove = move;
+    			}
+    		}
+    		//System.out.println(bestMove.getColumn());
+    		return val;
+    	}
+    }
+    
+    public int maximin(State s, Move[] moves, Move bestMove) throws InterruptedException {
+    	
+    	if(s.getBoard().hasConnectFour() != null || moves == null || moves.length == 0) {
+    		return evaluateBoard(s.getBoard());
+    	} else {
+    		int val = Integer.MAX_VALUE;
+    		for(Move move: moves) {
+    			Board newBoard = new Board(s.getBoard(), move);
+    			State newState = new State(s.getPlayer().opponent(), newBoard, move);
+    			
+       			Move[] movesForOpponents=newBoard.getPossibleMoves(s.getPlayer().opponent());
+    			
+    			int newVal = minimax(newState, movesForOpponents, bestMove);
+    			
+    			if(newVal < val) {
+    				val = newVal;
+    				bestMove = move;
+    			}
+    		}
+    		//System.out.println(bestMove.getColumn());
+    		return val;
+    	}
+    }
+    
+    public int evaluateBoard(Board b) {
+    	//static evaluation
+        Board.Player winner= b.hasConnectFour();
+        if (winner == null) {
+            // Store in sum the value of board b. 
+            int sum= 0;
+            List<Board.Player[]> locs= b.winLocations();
+            for (Board.Player[] loc : locs) {
+                for (Board.Player p : loc) {
+                    sum= sum + (p == player ? 1 : p != null ? -1 : 0);
+                }
+            }
+            return sum;
+        }
+        // There is a winner
+        int numEmpty= 0;
+        for (int r= 0; r < Board.NUM_ROWS; r= r+1) {
+            for (int c= 0; c < Board.NUM_COLS; c= c+1) {
+                if (b.getTile(r, c) == null) numEmpty += 1;
+            }
+        }
+        return (winner == player ? 1 : -1) * 10000 * numEmpty;
+
+    }
+
+}

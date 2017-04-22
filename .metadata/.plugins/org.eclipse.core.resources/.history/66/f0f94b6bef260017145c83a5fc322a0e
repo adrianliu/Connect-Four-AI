@@ -1,0 +1,128 @@
+import java.util.*;
+
+/** An instance represents a Solver that intelligently determines 
+ *  Moves using algorithm Minimax. */
+public class AI implements Solver {
+
+    private Board.Player player; // the current player
+    
+    
+    /** The depth of the search in the game space when evaluating moves. */
+    private int depth;
+    
+    
+    class BestResult {
+    	Move move;
+    	int score;
+    	public BestResult(Move bestMove, int bestScore) {
+    		move = bestMove;
+    		score = bestScore;
+    	}
+    	
+    }
+    
+
+    /** Constructor: an instance with player p who searches to depth d
+     * when searching the game space for moves. */
+    public AI(Board.Player p, int d) {
+        player= p;
+        depth = d;
+    }
+
+    /** See Solver.getMoves for the specification. */
+    public @Override Move getMove(Board b) {
+        // TODO
+    	State curState = new State(player, b, null);
+    	BestResult bestResult = maximizePlay(curState, this.depth);
+    	
+    	
+    	
+    	return bestMove;
+    }
+    
+    private void printBoard(Board b) {
+    	for (int r= 0; r < Board.NUM_ROWS; r++) {
+            for (int c= 0; c < Board.NUM_COLS; c++) {
+                System.out.print(b.board[r][c] + " ");
+            }
+        }
+    	System.out.println();
+    }
+    
+    
+    public BestResult maximizePlay(State s, int d) {
+    	
+    	int score = evaluateBoard(s.getBoard());
+    	//If finished
+    	if(d == 0 || s.getBoard().hasConnectFour() != null || s.getBoard().isFull()) {
+    		return new BestResult(null, score);
+    	}
+    	BestResult max = new BestResult(null, Integer.MIN_VALUE);
+    	Move[] possibleMoves = s.getBoard().getPossibleMoves(player);
+    	if(possibleMoves.length > 0) {
+    		for(Move move: possibleMoves) {
+    			Board newBoard = new Board(s.getBoard(), move);
+    			//it is player's turn to play, we dont care about last move.
+    			State newState = new State(s.getPlayer().opponent(), newBoard, null);
+    			BestResult nextResult = minimizePlay(newState, d - 1);
+    			if(max.move == null || nextResult.score > max.score) {
+    				max.move = move;
+    				max.score = nextResult.score;
+    			}
+    		}
+    	}
+    	return max;
+    	
+    }
+    
+    public BestResult minimizePlay(State s, int d) {
+    	
+    	int score = evaluateBoard(s.getBoard());
+    	//If finished
+    	if(d == 0 || s.getBoard().hasConnectFour() != null || s.getBoard().isFull()) {
+    		return new BestResult(null, score);
+    	}
+    	BestResult min = new BestResult(null, Integer.MAX_VALUE);
+    	Move[] possibleMoves = s.getBoard().getPossibleMoves(player);
+    	if(possibleMoves.length > 0) {
+    		for(Move move: possibleMoves) {
+    			Board newBoard = new Board(s.getBoard(), move);
+    			//it is player's turn to play, we dont care about last move.
+    			State newState = new State(s.getPlayer().opponent(), newBoard, null);
+    			BestResult nextResult = maximizePlay(newState, d - 1);
+    			if(min.move == null || nextResult.score < min.score) {
+    				min.move = move;
+    				min.score = nextResult.score;
+    			}
+    		}
+    	}
+    	return min;
+    	
+    }
+    
+    public int evaluateBoard(Board b) {
+    	//static evaluation
+        Board.Player winner= b.hasConnectFour();
+        if (winner == null) {
+            // Store in sum the value of board b. 
+            int sum= 0;
+            List<Board.Player[]> locs= b.winLocations();
+            for (Board.Player[] loc : locs) {
+                for (Board.Player p : loc) {
+                    sum= sum + (p == player ? 1 : p != null ? -1 : 0);
+                }
+            }
+            return sum;
+        }
+        // There is a winner
+        int numEmpty= 0;
+        for (int r= 0; r < Board.NUM_ROWS; r= r+1) {
+            for (int c= 0; c < Board.NUM_COLS; c= c+1) {
+                if (b.getTile(r, c) == null) numEmpty += 1;
+            }
+        }
+        return (winner == player ? 1 : -1) * 10000 * numEmpty;
+
+    }
+
+}
